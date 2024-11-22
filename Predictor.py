@@ -12,7 +12,8 @@ Total Points Predicted = .5*(OFF_RATING + OPPONENT DEF RATING)* 100 / PACE
 
 """
 
-# get team IDS (nba_api specific)
+# get team IDS (nba_api specific) 
+# (CREATE A JSON FILE WITH ALL THE TEAMS IDS THAT THE INPUT FUNCTION CAN PULL FROM.)
 LAL = 1610612747
 ORL = 1610612753
 teams = [ORL,LAL]
@@ -20,7 +21,7 @@ teams = [ORL,LAL]
 
 # Get Orlando Road data
 A = e.TeamPlayerOnOffDetails(season = '2024-25',team_id = ORL,measure_type_detailed_defense="Advanced",date_from_nullable = "2024-10-31",date_to_nullable = "2024-11-21",location_nullable = "Road").get_data_frames()
-#A=e.TeamPlayerOnOffDetails(season = '2024-25',team_id = ORL,measure_type_detailed_defense="Advanced",location_nullable="Road").get_data_frames()
+# A=e.TeamPlayerOnOffDetails(season = '2024-25',team_id = ORL,measure_type_detailed_defense="Advanced",location_nullable="Road").get_data_frames()
 O = pd.concat([A[1],A[2]])
 
 # Look only at data with/without Kentavious Caldwell Pope (since he's out tonight)
@@ -38,7 +39,7 @@ print(A[A['TEAM_ID'].isin(teams)].loc[:,['TEAM_NAME','GP','W','L','MIN','OFF_RAT
 
 
 
-# make estimates
+# make estimates (Note from Revant DO NOT TOUCH ANY OF THIS UNTIL INPUT FUNCTION DONE)
 
 ORL_DATA = O[O['COURT_STATUS'] == 'Off']
 LAL_DATA = A[A['TEAM_ID'] == LAL] 
