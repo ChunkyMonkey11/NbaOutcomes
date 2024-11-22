@@ -1,1 +1,2 @@
 1. Create a function that makes the user which team is home and which is away.
+  (Create a dictonary that contains abbreviated team names as keys and the id as a value)
