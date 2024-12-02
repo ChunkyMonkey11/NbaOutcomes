@@ -12,4 +12,3 @@ For predict_total to work, must run the following in order each new day:
 - then run code.py
 
 
-The projected_minutes folder aims to scrape rotowire's NBA Daily Lineups page for projected minutes (would need a paid subcription 5.99/mo for home team's data)
