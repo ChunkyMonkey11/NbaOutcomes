@@ -12,3 +12,7 @@ For predict_total to work, must run the following in order each new day:
 - then run code.py
 
 
+Next steps:
+
+    
+
