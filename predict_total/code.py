@@ -953,4 +953,3 @@ T = T.copy()
 T = T.rename(columns = {'total':'yahoo_total','total_guess':'predicted_total'})
 
 print(T)
-
