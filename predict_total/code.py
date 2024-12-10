@@ -17,51 +17,6 @@ import json
 
 
 
-###
-
-### Get Regular Season Team Game Logs (e.g. PTS AST , etc)
-
-###
-
-
-
-def get_regular(season = "2024-25",loc = None,season_type="Regular Season",game_segment = None):
-	filepath_string="regular_season_data/"+season[:4]+"_get_regular_"+season_type[:3]+".csv"
-	R=e.TeamGameLogs(season_nullable=season,location_nullable=loc,season_type_nullable=season_type,game_segment_nullable = game_segment).get_data_frames()[0]
-	R = R.rename(columns = {"GAME_DATE":"date",'TEAM_ABBREVIATION':'team'})
-	R['date'] = pd.to_datetime(R['date'])
-	R=R.sort_values("date")
-	R['rest'] = R.groupby("team")['date'].transform(lambda x: x.diff())
-	R.to_csv(filepath_string,index=False)
-	return R
-
-
-get_regular()
-
-
-
-
-
-
-
-
-###
-
-### END Get Regular Season Team Game Logs (e.g. PTS AST , etc)
-
-###
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -158,20 +113,20 @@ def get_yahoo_lines(sport,date):
 # Regular season start / end dates
 
 nba ={
-    '2016-17': ('2016-10-25', '2017-04-12'),
-    '2017-18': ('2017-10-17', '2018-04-11'),
-    '2018-19': ('2018-10-16', '2019-04-10'),
-    '2020-21': ('2020-12-22', '2021-05-16'),
-    '2021-22': ('2021-10-19', '2022-04-10'),
-    '2022-23': ('2022-10-18', '2023-04-09'),
-    '2023-24': ('2023-10-24', '2024-04-14'),
-    '2024-25': ('2024-10-22', '2024-11-03')
+	'2016-17': ('2016-10-25', '2017-04-12'),
+	'2017-18': ('2017-10-17', '2018-04-11'),
+	'2018-19': ('2018-10-16', '2019-04-10'),
+	'2020-21': ('2020-12-22', '2021-05-16'),
+	'2021-22': ('2021-10-19', '2022-04-10'),
+	'2022-23': ('2022-10-18', '2023-04-09'),
+	'2023-24': ('2023-10-24', '2024-04-14'),
+	'2024-25': ('2024-10-22', '2024-11-03')
 }
 
 
 
 
-# UNCOMMENT the code below to pull ALL odds for a particular season
+# UNCOMMENT the code below to pull ALL odds for a particular PAST full season
 
 
 #season = input("What season?\n")
@@ -232,8 +187,6 @@ ODDS.to_csv("data/"+season+"NBAodds.csv",header = False, mode = 'a')
 
 
 
-
-
 ###
 
 ### END Get Odds Data from yahoo
@@ -258,19 +211,23 @@ ODDS.to_csv("data/"+season+"NBAodds.csv",header = False, mode = 'a')
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ###
 
 ### Merge Odds and Stats, Create Columns, and Predict Total
 
 ###
-
-
-
-
-
-
-
-
 
 
 
@@ -372,7 +329,46 @@ ODDS['team'] = ODDS['team'].apply(lambda x: teams_dict_fix[x])
 
 
 
-# get regular season STATS
+
+
+###
+
+### UPDATE 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
+
+###
+
+
+
+def get_regular(season = "2024-25",loc = None,season_type="Regular Season",game_segment = None):
+	filepath_string="regular_season_data/"+season[:4]+"_get_regular_"+season_type[:3]+".csv"
+	R=e.TeamGameLogs(season_nullable=season,location_nullable=loc,season_type_nullable=season_type,game_segment_nullable = game_segment).get_data_frames()[0]
+	R = R.rename(columns = {"GAME_DATE":"date",'TEAM_ABBREVIATION':'team'})
+	R['date'] = pd.to_datetime(R['date'])
+	R=R.sort_values("date")
+	R['rest'] = R.groupby("team")['date'].transform(lambda x: x.diff())
+	R.to_csv(filepath_string,index=False)
+	return R
+
+
+STATS = get_regular()
+
+
+
+###
+
+### END UPDATE 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
+
+###
+
+
+
+
+###
+
+### Get 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
+
+###
+
 
 STATS = pd.read_csv("regular_season_data/2024_get_regular_Reg.csv")
 cols = [c for c in STATS.columns.tolist() if 'RANK' not in c]
@@ -382,6 +378,11 @@ STATS = STATS.drop(columns = ['TEAM_ID','TEAM_NAME','AVAILABLE_FLAG','rest'])
 
 
 
+###
+
+### END Get 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
+
+###
 
 
 
@@ -390,9 +391,12 @@ STATS = STATS.drop(columns = ['TEAM_ID','TEAM_NAME','AVAILABLE_FLAG','rest'])
 
 
 
+###
 
+### MERGE ODDS and STATS DataFrame
 
-# MERGE Odds and STATS
+###
+
 
 # Make sure columns have same data type before MERGE
 STATS['date'] = pd.to_datetime(STATS['date'])
@@ -403,6 +407,15 @@ MERGED = pd.merge(ODDS,STATS, on = ['date','team'], how = 'outer')
 df = MERGED
 
 df = df.sort_values('date')
+
+
+###
+
+### END MERGE ODDS and STATS DataFrame
+
+###
+
+
 
 
 
@@ -422,8 +435,10 @@ df['is_home'] = df['MATCHUP'].str.contains("vs.")
 
 
 
-
+# make a boolean win/loss column
 df['win'] = df['PLUS_MINUS']>0
+
+# make a total points column
 df['total_pts'] = df['pts']+df['pts_opp']
 
 
@@ -431,12 +446,41 @@ print("..making columns and cleaning the data...")
 
 
 
-#
-#
-# Make profit win/loss columns
-#
-#
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+###
+
+### MAKE PROFIT WIN/LOSS COLUMNS
+
+###
+
+
+"""
+The function below will make the following columns
+
+
+- hundred_ml :	 profit/loss from a 100$ wager on the moneyline on this team
+- hundred_spread : profit/loss from a 100$ wager on the spread on this team
+
+- hundred_ml_fade :	 profit/loss from a 100$ wager on the moneyline on the OPPONENT
+- hundred_spread_fade : profit/loss from a 100$ wager on the spread on the OPPONENT
+
+- hundred_over :  profit/loss from a 100$ wager on the OVER for the total points
+- hundred_under : profit/loss from a 100$ wager on the UNDER for the total points
+
+"""
 
 def make_profit_win_loss_columns(df):
 	# %%
@@ -544,11 +588,11 @@ df = make_profit_win_loss_columns(df)
 
 
 
-#
-#
-# END Make profit win/loss columns
-#
-#
+###
+
+### END MAKE PROFIT WIN/LOSS COLUMNS
+
+###
 
 
 
@@ -624,11 +668,11 @@ df.loc[df['SEASON_YEAR'].isna(),'SEASON_YEAR'] = df.loc[df['SEASON_YEAR'].isna()
 book_dict = {'2016-17':'BOVADA.LV','2017-18':'BOVADA.LV','2019-20':"COVID",'2018-19':'BOVADA.LV','2020-21':'Stats, LLC','2021-22':'BetMGM','2022-23':'BetMGM','2023-24':'BetMGM','2024-25':'BetMGM'}
 #book_dict = {2016:'5dimes.eu',2017:'BOVADA.LV',2018:'BOVADA.LV',2019:'Stats, LLC',2022:'BetMGM',2023:'BetMGM',2024:'BetMGM'}
 def do(s):
-    book,year = s['book_name'],s['SEASON_YEAR']
-    if (book_dict[year] == book) or (book == 'Missing') or (book_dict[year] == "COVID"):
-        return True
-    else:
-        return False
+	book,year = s['book_name'],s['SEASON_YEAR']
+	if (book_dict[year] == book) or (book == 'Missing') or (book_dict[year] == "COVID"):
+		return True
+	else:
+		return False
 N = df.copy()
 N['to_use'] = N.apply(do,axis = 1)
 N = N[N['to_use']]
@@ -646,28 +690,21 @@ N = N.drop(columns = ['to_use'])
 
 
 
-
-
-
 df = df.drop_duplicates(subset = ['team','gid'])
-
-
-
-
-
 
 
 df = df.sort_values('date')
 
 
-
-
-
-
-
-
-
 df['date_str'] = df['date'].apply(lambda x: str(x)[:10])
+
+
+
+
+
+
+
+
 
 
 
@@ -697,6 +734,7 @@ season = seasons[0]
 T = e.TeamGameLogs(season_nullable = season,measure_type_player_game_logs_nullable="Advanced").get_data_frames()[0]
 T = T.loc[:,cols]
 T['opp'] = T['MATCHUP'].apply(lambda x: x.split(' ')[-1])
+T['is_home'] = T['MATCHUP'].str.contains("vs.")
 
 R = e.TeamGameLogs(season_nullable=season).get_data_frames()[0]
 P = pd.merge(T,R.loc[:,['TEAM_ID','GAME_ID','PTS']], on = ['TEAM_ID','GAME_ID'])
@@ -704,27 +742,56 @@ P = pd.merge(P,R.loc[:,['TEAM_ABBREVIATION','GAME_ID','PTS']], left_on = ['opp',
 
 P['GAME_DATE']= pd.to_datetime(P['GAME_DATE'])
 P = P.sort_values("GAME_DATE")
-P = P.loc[:,['SEASON_YEAR','TEAM_ABBREVIATION','GAME_ID','GAME_DATE','MIN','OFF_RATING','DEF_RATING','PACE','POSS','PTS','PTS_opp']]
+P = P.loc[:,['SEASON_YEAR','TEAM_ABBREVIATION','GAME_ID','GAME_DATE','is_home','MIN','OFF_RATING','DEF_RATING','PACE','POSS','PTS','PTS_opp']]
 
+
+
+# Make cumulative sums columns for each team
 P['pts_cumsum'] = P.groupby("TEAM_ABBREVIATION")['PTS'].cumsum()
 P['pts_opp_cumsum'] = P.groupby("TEAM_ABBREVIATION")['PTS_opp'].cumsum()
 P['poss_cumsum'] = P.groupby("TEAM_ABBREVIATION")['POSS'].cumsum()
 P['MIN_cumsum'] = P.groupby("TEAM_ABBREVIATION")['MIN'].cumsum()
 
 
+
+
+
+
+### HOME vs ROAD ADJUSTMENTS
+
+# Make cumulative sums columns for each team adjusted for HOME/AWAY
+P['pts_home_away_cumsum'] = P.groupby(["TEAM_ABBREVIATION",'is_home'])['PTS'].cumsum()
+P['pts_home_away_opp_cumsum'] = P.groupby(["TEAM_ABBREVIATION",'is_home'])['PTS_opp'].cumsum()
+P['poss_home_away_cumsum'] = P.groupby(["TEAM_ABBREVIATION",'is_home'])['POSS'].cumsum()
+P['MIN_home_away_cumsum'] = P.groupby(["TEAM_ABBREVIATION",'is_home'])['MIN'].cumsum()
+
+
+P['ORTG_home_away_running_avg'] = 100*P['pts_home_away_cumsum']/P['poss_home_away_cumsum']
+P['DRTG_home_away_running_avg'] = 100*P['pts_home_away_opp_cumsum']/P['poss_home_away_cumsum']
+P['PACE_home_away_running_avg'] = 48*P['poss_home_away_cumsum']/P['MIN_home_away_cumsum']
+
+### END HOME vs ROAD ADJUSTMENTS
+
+
+
+
+# Compute running averages
 P['ORTG_running_avg'] = 100*P['pts_cumsum']/P['poss_cumsum']
 P['DRTG_running_avg'] = 100*P['pts_opp_cumsum']/P['poss_cumsum']
-
 P['PACE_running_avg'] = 48*P['poss_cumsum']/P['MIN_cumsum']
 
+
+
+# fix date data type before merge
 P['GAME_DATE'] = pd.to_datetime(P['GAME_DATE'])
 
 P['date_str'] = P['GAME_DATE'].apply(lambda x: str(x)[:10])
 
-P = P.loc[:,['date_str','TEAM_ABBREVIATION','ORTG_running_avg','DRTG_running_avg','PACE_running_avg']].copy()
+# only take necessary columns
+P = P.loc[:,['date_str','TEAM_ABBREVIATION','ORTG_running_avg','DRTG_running_avg','PACE_running_avg','ORTG_home_away_running_avg','DRTG_home_away_running_avg','PACE_home_away_running_avg']]
 P = P.rename(columns = {"TEAM_ABBREVIATION":"team"})
 
-ADVANCED_STATS = P
+ADVANCED_STATS = P.copy()
 
 
 
@@ -751,20 +818,26 @@ df = pd.merge(df,ADVANCED_STATS, on = ['team','date_str'],how ='left')
 
 
 ## IMPORTANT !!! 
-## this is a cumulative average column
-# It Must be shifted to avoid data LEAKAGE!!!
+## THESE ARE CUMULATIVE AVERAGES
+# MUST BE SHIFTED TO AVOID DATA LEAKAGE!!!
 df['PACE_running_avg'] = df.groupby(['season','team'])['PACE_running_avg'].shift()
 df['ORTG_running_avg'] = df.groupby(['season','team'])['ORTG_running_avg'].shift()
 df['DRTG_running_avg'] = df.groupby(['season','team'])['DRTG_running_avg'].shift()
 
+# Home/Road Adjusted:
+df['PACE_home_away_running_avg'] = df.groupby(['season','team','is_home'])['PACE_home_away_running_avg'].shift()
+df['ORTG_home_away_running_avg'] = df.groupby(['season','team','is_home'])['ORTG_home_away_running_avg'].shift()
+df['DRTG_home_away_running_avg'] = df.groupby(['season','team','is_home'])['DRTG_home_away_running_avg'].shift()
 
 
 
+# fix date data type before merge
 df['date'] = pd.to_datetime(df['date'])
 H = df[df['is_home']]
 A = df[~df['is_home']]
-P = pd.merge(H,A.loc[:,['date','opp','ORTG_running_avg','DRTG_running_avg','PACE_running_avg']],left_on = ['date','team'],right_on = ['date','opp'],suffixes = ['','_opp'])
-Q = pd.merge(A,H.loc[:,['date','opp','ORTG_running_avg','DRTG_running_avg','PACE_running_avg']],left_on = ['date','team'],right_on = ['date','opp'],suffixes = ['','_opp'])
+# get opponent averages
+P = pd.merge(H,A.loc[:,['date','opp','ORTG_running_avg','DRTG_running_avg','PACE_running_avg','ORTG_home_away_running_avg','DRTG_home_away_running_avg','PACE_home_away_running_avg']],left_on = ['date','team'],right_on = ['date','opp'],suffixes = ['','_opp'])
+Q = pd.merge(A,H.loc[:,['date','opp','ORTG_running_avg','DRTG_running_avg','PACE_running_avg','ORTG_home_away_running_avg','DRTG_home_away_running_avg','PACE_home_away_running_avg']],left_on = ['date','team'],right_on = ['date','opp'],suffixes = ['','_opp'])
 PP = pd.concat([P,Q]).sort_values('date')
 PP = PP.drop(columns = ['opp_opp'])
 df = PP
@@ -805,7 +878,7 @@ print("\n\n","now working on the totals prediction columns ...")
 
 ###
 ###
-### MAKE TOTALS PREDICTIONS
+### MAKE PREDICTIONS
 ###
 ###
 
@@ -813,21 +886,113 @@ print("\n\n","now working on the totals prediction columns ...")
 
 
 def make_prediction(s):
-    #T1,T2 = A.loc[A.TEAM_NAME==m[0]],A.loc[A.TEAM_NAME==m[1]]
-    ortg1,ortg2,drtg1,drtg2,pace1,pace2 = s.ORTG_running_avg,s.ORTG_running_avg_opp,s.DRTG_running_avg,s.DRTG_running_avg_opp,s.PACE_running_avg,s.PACE_running_avg_opp
-    pace = (pace1+pace2)/2
-    guess = (pace/100)*((ortg1+drtg2)/2+(ortg2+drtg1)/2)
-    return round(guess,4)
+	# make estimates
+	ortg1,drtg1,pace1 = s['ORTG_running_avg'],s['DRTG_running_avg'],s['PACE_running_avg']
+	ortg2,drtg2,pace2 = s['ORTG_running_avg_opp'],s['DRTG_running_avg_opp'],s['PACE_running_avg_opp']
+	pace = (pace1+pace2)/2
+	spread_1 = (pace/100)*(ortg1-drtg1) 
+	spread_2 = (pace/100)*(ortg2-drtg2) 
+	total_1 = (pace/100)*(ortg1+drtg1) 
+	total_2 = (pace/100)*(ortg2+drtg2) 
+	spread_guess = .5*(spread_1-spread_2)
+	over_under_guess = .5*(total_1+total_2)
+	return (-spread_guess,over_under_guess)
 
-df['predicted_total'] = df.apply(make_prediction,axis = 1)
+df['predictions'] = df.apply(make_prediction,axis = 1)
+df['predicted_spread'] = df['predictions'].apply(lambda x: x[0])
+df['predicted_total'] = df['predictions'].apply(lambda x: x[1])
+df = df.drop(columns = 'predictions')
 df['predicted_total'] = df['predicted_total'].apply(lambda x: round(2*x,0)/2)
+df['predicted_spread'] = df['predicted_spread'].apply(lambda x: round(2*x,0)/2)
 
 
 ###
 ###
-### END MAKE TOTALS PREDICTIONS
+### END MAKE PREDICTIONS
 ###
 ###
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###
+###
+### MAKE HOME vs ROAD ADJUSTED PREDICTIONS
+###
+###
+
+def make_prediction(s):
+	# make estimates
+	ortg1,drtg1,pace1 = s['ORTG_home_away_running_avg'],s['DRTG_home_away_running_avg'],s['PACE_home_away_running_avg']
+	ortg2,drtg2,pace2 = s['ORTG_home_away_running_avg_opp'],s['DRTG_home_away_running_avg_opp'],s['PACE_home_away_running_avg_opp']
+	pace = (pace1+pace2)/2
+	spread_1 = (pace/100)*(ortg1-drtg1) 
+	spread_2 = (pace/100)*(ortg2-drtg2) 
+	total_1 = (pace/100)*(ortg1+drtg1) 
+	total_2 = (pace/100)*(ortg2+drtg2) 
+	spread_guess = .5*(spread_1-spread_2)
+	over_under_guess = .5*(total_1+total_2)
+	return (-spread_guess,over_under_guess)
+
+df['predictions_home_away'] = df.apply(make_prediction,axis = 1)
+df['predicted_spread_home_away_adjusted'] = df['predictions_home_away'].apply(lambda x: x[0])
+df['predicted_total_home_away_adjusted'] = df['predictions_home_away'].apply(lambda x: x[1])
+df = df.drop(columns = 'predictions_home_away')
+df['predicted_total_home_away_adjusted'] = df['predicted_total_home_away_adjusted'].apply(lambda x: round(2*x,0)/2)
+df['predicted_spread_home_away_adjusted'] = df['predicted_spread_home_away_adjusted'].apply(lambda x: round(2*x,0)/2)
+
+
+###
+###
+### END MAKE HOME vs ROAD ADJUSTED PREDICTIONS
+###
+###
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -845,18 +1010,29 @@ df['predicted_total'] = df['predicted_total'].apply(lambda x: round(2*x,0)/2)
 
 
 
-
-print("\n\n","If ran interactively, the following table is in the namespace under the variable name PREDICTIONS \n\n")
+print("Predictions:")
 
 today = str(datetime.datetime.today())[:10]
 
 TODAY = df[df['date_str'] == today]
 
-PREDICTIONS = TODAY.loc[:,['date','matchup','total','predicted_total','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
-PREDICTIONS = PREDICTIONS.copy()
-PREDICTIONS = PREDICTIONS.rename(columns = {'total':'yahoo_total'})
-print(PREDICTIONS)
+TODAY = TODAY[TODAY['is_home']]
 
+
+
+PREDICTIONS1 = TODAY.loc[:,['date','matchup','total','predicted_total','predicted_spread','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS1 = PREDICTIONS1.copy()
+PREDICTIONS1 = PREDICTIONS1.rename(columns = {'total':'yahoo_total'})
+print(PREDICTIONS1)
+
+
+
+print("Predictions home / road adjusted predictions:")
+
+PREDICTIONS2 = TODAY.loc[:,['date','matchup','total','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS2 = PREDICTIONS2.copy()
+PREDICTIONS2 = PREDICTIONS2.rename(columns = {'total':'yahoo_total'})
+print(PREDICTIONS2)
 
 
 ###
@@ -866,6 +1042,11 @@ print(PREDICTIONS)
 ###
 
 
+
+
+T1 = PREDICTIONS1
+T2 = PREDICTIONS2
+T2.columns = ['matchup','yahoo_total','predicted_total','predicted_spread']
 
 
 
