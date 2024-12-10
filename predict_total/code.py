@@ -8,7 +8,10 @@ import json
 
 
 
-
+pd.set_option("display.max_columns",None)
+pd.set_option("display.max_rows",None)
+pd.options.display.width = 0
+pd.options.display.max_colwidth = 20
 
 
 
