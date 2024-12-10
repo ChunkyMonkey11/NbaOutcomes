@@ -989,8 +989,26 @@ df['predicted_spread_home_away_adjusted'] = df['predicted_spread_home_away_adjus
 
 
 
+###
+###
+### Make team spread column
+###
+###
 
+def return_spread(row):
+    away_spread = row['away_spread']
+    home_spread = row['home_spread']
+    if row['is_home'] == True:
+        return home_spread
+    else:
+        return away_spread
+df['team_spread'] = df.apply(return_spread, axis = 1)
 
+###
+###
+### END Make team spread column
+###
+###
 
 
 
@@ -1020,19 +1038,19 @@ TODAY = TODAY[TODAY['is_home']]
 
 
 
-PREDICTIONS1 = TODAY.loc[:,['date','matchup','total','predicted_total','predicted_spread','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS1 = TODAY.loc[:,['date','matchup','team_spread','total','predicted_total','predicted_spread','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
 PREDICTIONS1 = PREDICTIONS1.copy()
-PREDICTIONS1 = PREDICTIONS1.rename(columns = {'total':'yahoo_total'})
-print(PREDICTIONS1)
+PREDICTIONS1 = PREDICTIONS1.rename(columns = {'team_spread':'yahoo_spread','total':'yahoo_total'})
+# print(PREDICTIONS1)
 
 
 
 print("Predictions home / road adjusted predictions:")
 
-PREDICTIONS2 = TODAY.loc[:,['date','matchup','total','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS2 = TODAY.loc[:,['date','matchup','team_spread','total','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
 PREDICTIONS2 = PREDICTIONS2.copy()
-PREDICTIONS2 = PREDICTIONS2.rename(columns = {'total':'yahoo_total'})
-print(PREDICTIONS2)
+PREDICTIONS2 = PREDICTIONS2.rename(columns = {'team_spread':'yahoo_spread','total':'yahoo_total'})
+# print(PREDICTIONS2)
 
 
 ###
@@ -1046,7 +1064,12 @@ print(PREDICTIONS2)
 
 T1 = PREDICTIONS1
 T2 = PREDICTIONS2
-T2.columns = ['matchup','yahoo_total','predicted_total','predicted_spread']
+T2.columns = ['matchup','yahoo_spread','yahoo_total','predicted_total','predicted_spread']
 
+
+print("Predictions for today:")
+print(T1)
+print("Home/Road adjusted Predictions:")
+print(T2)
 
 
