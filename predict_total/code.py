@@ -120,7 +120,7 @@ nba ={
 	'2021-22': ('2021-10-19', '2022-04-10'),
 	'2022-23': ('2022-10-18', '2023-04-09'),
 	'2023-24': ('2023-10-24', '2024-04-14'),
-	'2024-25': ('2024-10-22', '2024-11-03')
+	'2024-25': ('2024-10-22', '2025-04-13')
 }
 
 
@@ -169,8 +169,11 @@ T.to_csv("data/"+season+"NBAodds.csv")
 
 
 
-today = str(datetime.datetime.today())[:10]
+#tomorrow = datetime.datetime.today()+datetime.timedelta(days=1)
+#tomorrow = str(tomorrow)[:10]
+#L=list(pd.date_range(new_date,tomorrow))
 
+today = str(datetime.datetime.today())[:10]
 L=list(pd.date_range(new_date,today))
 L = [str(date)[:10] for date in L]
 date = L[0]
@@ -330,47 +333,22 @@ ODDS['team'] = ODDS['team'].apply(lambda x: teams_dict_fix[x])
 
 
 
-
-###
-
-### UPDATE 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
-
-###
-
-
-
-def get_regular(season = "2024-25",loc = None,season_type="Regular Season",game_segment = None):
-	filepath_string="regular_season_data/"+season[:4]+"_get_regular_"+season_type[:3]+".csv"
-	R=e.TeamGameLogs(season_nullable=season,location_nullable=loc,season_type_nullable=season_type,game_segment_nullable = game_segment).get_data_frames()[0]
-	R = R.rename(columns = {"GAME_DATE":"date",'TEAM_ABBREVIATION':'team'})
-	R['date'] = pd.to_datetime(R['date'])
-	R=R.sort_values("date")
-	R['rest'] = R.groupby("team")['date'].transform(lambda x: x.diff())
-	R.to_csv(filepath_string,index=False)
-	return R
-
-
-STATS = get_regular()
-
-
-
-###
-
-### END UPDATE 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
-
-###
-
-
-
-
 ###
 
 ### Get 2024-25 GAME LOGS (e.g. Team PTS, AST, STL , etc)
 
 ###
-
-
-STATS = pd.read_csv("regular_season_data/2024_get_regular_Reg.csv")
+season = '2024-25'
+STATS = e.TeamGameLogs(season_nullable=season).get_data_frames()[0]
+time.sleep(0.5)
+IST_STATS = e.TeamGameLogs(season_nullable=season,season_type_nullable='IST').get_data_frames()[0]
+STATS = pd.concat([STATS,IST_STATS])
+STATS = STATS.rename(columns = {"GAME_DATE":"date",'TEAM_ABBREVIATION':'team'})
+STATS['date'] = pd.to_datetime(STATS['date'])
+STATS=STATS.sort_values("date")
+STATS = STATS.reset_index(drop=True)
+STATS = STATS.drop_duplicates(subset = ['GAME_ID','team'])
+STATS['rest'] = STATS.groupby("team")['date'].transform(lambda x: x.diff())
 cols = [c for c in STATS.columns.tolist() if 'RANK' not in c]
 STATS = STATS.loc[:,cols]
 STATS = STATS.rename(columns = {'TEAM_ABBREVIATION':"team",'GAME_DATE':"date",'DAYS_REST':'rest'})
@@ -732,11 +710,21 @@ cols = ['SEASON_YEAR',
 seasons = ['2024-25']
 season = seasons[0]
 T = e.TeamGameLogs(season_nullable = season,measure_type_player_game_logs_nullable="Advanced").get_data_frames()[0]
+TT = e.TeamGameLogs(season_nullable = season,season_type_nullable='IST',measure_type_player_game_logs_nullable="Advanced").get_data_frames()[0]
+T = pd.concat([T,TT])
+T = T.drop_duplicates(subset = ["GAME_ID","TEAM_ABBREVIATION"])
+
+
 T = T.loc[:,cols]
 T['opp'] = T['MATCHUP'].apply(lambda x: x.split(' ')[-1])
 T['is_home'] = T['MATCHUP'].str.contains("vs.")
 
 R = e.TeamGameLogs(season_nullable=season).get_data_frames()[0]
+RR = e.TeamGameLogs(season_nullable=season,season_type_nullable='IST').get_data_frames()[0]
+R = pd.concat([R,RR])
+
+R = R.drop_duplicates(subset = ["GAME_ID","TEAM_ABBREVIATION"])
+
 P = pd.merge(T,R.loc[:,['TEAM_ID','GAME_ID','PTS']], on = ['TEAM_ID','GAME_ID'])
 P = pd.merge(P,R.loc[:,['TEAM_ABBREVIATION','GAME_ID','PTS']], left_on = ['opp','GAME_ID'],right_on = ['TEAM_ABBREVIATION','GAME_ID'], suffixes = ['','_opp'])
 
@@ -986,14 +974,13 @@ df['predicted_spread_home_away_adjusted'] = df['predicted_spread_home_away_adjus
 
 
 
+###
+###
+### Make team_spread column
+###
+###
 
 
-
-###
-###
-### Make team spread column
-###
-###
 
 def return_spread(row):
     away_spread = row['away_spread']
@@ -1004,11 +991,13 @@ def return_spread(row):
         return away_spread
 df['team_spread'] = df.apply(return_spread, axis = 1)
 
+
 ###
 ###
-### END Make team spread column
+### END Make team_spread column
 ###
 ###
+
 
 
 
@@ -1038,19 +1027,32 @@ TODAY = TODAY[TODAY['is_home']]
 
 
 
-PREDICTIONS1 = TODAY.loc[:,['date','matchup','team_spread','total','predicted_total','predicted_spread','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS1 = TODAY.loc[:,['date','matchup','total','team_spread','predicted_total','predicted_spread','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
 PREDICTIONS1 = PREDICTIONS1.copy()
-PREDICTIONS1 = PREDICTIONS1.rename(columns = {'team_spread':'yahoo_spread','total':'yahoo_total'})
-# print(PREDICTIONS1)
+PREDICTIONS1 = PREDICTIONS1.rename(columns = {'total':'yahoo_total','team_spread':'yahoo_spread'})
+#print(PREDICTIONS1)
 
 
 
 print("Predictions home / road adjusted predictions:")
 
-PREDICTIONS2 = TODAY.loc[:,['date','matchup','team_spread','total','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS2 = TODAY.loc[:,['date','matchup','total','team_spread','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
 PREDICTIONS2 = PREDICTIONS2.copy()
-PREDICTIONS2 = PREDICTIONS2.rename(columns = {'team_spread':'yahoo_spread','total':'yahoo_total'})
-# print(PREDICTIONS2)
+PREDICTIONS2 = PREDICTIONS2.rename(columns = {'total':'yahoo_total','team_spread':'yahoo_spread'})
+#print(PREDICTIONS2)
+
+
+
+T1 = PREDICTIONS1
+T2 = PREDICTIONS2
+T2.columns = ['matchup','yahoo_total','yahoo_spread','predicted_total','predicted_spread']
+
+
+print("Basic predictions:")
+print(T1)
+
+print("\n\n Home/Road Adjusted:")
+print(T2)
 
 
 ###
@@ -1059,17 +1061,5 @@ PREDICTIONS2 = PREDICTIONS2.rename(columns = {'team_spread':'yahoo_spread','tota
 ###
 ###
 
-
-
-
-T1 = PREDICTIONS1
-T2 = PREDICTIONS2
-T2.columns = ['matchup','yahoo_spread','yahoo_total','predicted_total','predicted_spread']
-
-
-print("Predictions for today:")
-print(T1)
-print("Home/Road adjusted Predictions:")
-print(T2)
 
 
