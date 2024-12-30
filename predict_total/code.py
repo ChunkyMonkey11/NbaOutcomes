@@ -1003,8 +1003,24 @@ df['team_spread'] = df.apply(return_spread, axis = 1)
 
 
 
+###
+###
+### Make favored_team column
+###
+###
+def determine_favored_team(row):
+    """
+    Determines the favored team based on the spread.
+    Negative spread means the team is favored.
+    """
+    if row['team_spread'] < 0:
+        return row['team']
+    elif row['team_spread'] > 0:
+        return row['opp']
+    else:
+        return "Neither"
 
-
+df['favored_team'] = df.apply(determine_favored_team, axis=1)
 
 
 
@@ -1030,7 +1046,7 @@ TODAY = TODAY[TODAY['is_home']]
 
 
 
-PREDICTIONS1 = TODAY.loc[:,['date','matchup','total','team_spread','predicted_total','predicted_spread','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS1 = TODAY.loc[:,['date','matchup','total','team_spread','predicted_total','predicted_spread','is_home','favored_team']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
 PREDICTIONS1 = PREDICTIONS1.copy()
 PREDICTIONS1 = PREDICTIONS1.rename(columns = {'total':'yahoo_total','team_spread':'yahoo_spread'})
 #print(PREDICTIONS1)
@@ -1039,7 +1055,7 @@ PREDICTIONS1 = PREDICTIONS1.rename(columns = {'total':'yahoo_total','team_spread
 
 print("Predictions home / road adjusted predictions:")
 
-PREDICTIONS2 = TODAY.loc[:,['date','matchup','total','team_spread','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
+PREDICTIONS2 = TODAY.loc[:,['date','matchup','total','team_spread','predicted_total_home_away_adjusted','predicted_spread_home_away_adjusted','is_home','favored_team']].sort_values(['is_home']).set_index('date').drop(columns = 'is_home')
 PREDICTIONS2 = PREDICTIONS2.copy()
 PREDICTIONS2 = PREDICTIONS2.rename(columns = {'total':'yahoo_total','team_spread':'yahoo_spread'})
 #print(PREDICTIONS2)
@@ -1048,7 +1064,7 @@ PREDICTIONS2 = PREDICTIONS2.rename(columns = {'total':'yahoo_total','team_spread
 
 T1 = PREDICTIONS1
 T2 = PREDICTIONS2
-T2.columns = ['matchup','yahoo_total','yahoo_spread','predicted_total','predicted_spread']
+T2.columns = ['matchup','yahoo_total','yahoo_spread','predicted_total','predicted_spread','favored_team']
 
 
 print("Basic predictions:")
