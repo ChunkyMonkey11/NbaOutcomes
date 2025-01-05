@@ -186,7 +186,7 @@ for date in L[1:]:
 	ODDS = pd.concat((ODDS,DF))
 	time.sleep(.05)
 
-# append the new data to  old csv file
+# append the new data to old csv file
 ODDS.to_csv("data/"+season+"NBAodds.csv",header = False, mode = 'a')
 
 

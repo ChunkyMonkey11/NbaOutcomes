@@ -1,12 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Predictions</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-    <h1>Home Page </h1>
+    <h1>Game Predictions</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Matchup</th>
+                <th>Yahoo Total</th>
+                <th>Yahoo Spread</th>
+                <th>Predicted Total</th>
+                <th>Predicted Spread</th>
+                <th>Favored Team</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in predictions %}
+            <tr>
+                <td>{{ row.matchup }}</td>
+                <td>{{ row.yahoo_total }}</td>
+                <td>{{ row.yahoo_spread }}</td>
+                <td>{{ row.predicted_total }}</td>
+                <td>{{ row.predicted_spread }}</td>
+                <td>{{ row.favored_team }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </body>
 </html>
