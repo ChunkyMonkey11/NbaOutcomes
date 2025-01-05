@@ -1073,12 +1073,13 @@ print(T1)
 print("\n\n Home/Road Adjusted:")
 print(T2)
 
-
 ###
 ###
 ### END Print data to User
 ###
 ###
 
-
+# Create CSV Files for website to pull from
+T1.to_csv("Predictions_Basic.csv",index=False)
+T2.to_csv("Predictions_Home_Road_adjusted.csv",index=False)
 
