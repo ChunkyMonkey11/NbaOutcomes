@@ -20,16 +20,17 @@ Predictions Page: A placeholder for future statistical model predictions and ana
 
 Features of the Website
 
-Peltzers Picks Homepage:
+1. Peltzers Picks Homepage
 
 Acts as the entry point for the website.
 
 Welcomes users and introduces them to the site's purpose and content.
 
-About Page:
+2. About Page
 
 Designed to provide information about the website's development journey and the inspiration behind it.
 
-Predictions Page (Planned):
+3. Predictions Page (Planned)
 
 A placeholder for displaying statistical models, predictions, and analyses in the future.
+
