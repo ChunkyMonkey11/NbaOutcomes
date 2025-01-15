@@ -1,9 +1,0 @@
-1. Create a function that lets the user input the home team and the away team.
-  (Create a dictonary that contains abbreviated team names as keys and the id as a value)
-
-
-
-2. predict_total -> code.py needs some cleaning/code commenting
-
-3. work on projected_minutes code
-    -to scrape rotowire's NBA Daily Lineups page for projected minutes
