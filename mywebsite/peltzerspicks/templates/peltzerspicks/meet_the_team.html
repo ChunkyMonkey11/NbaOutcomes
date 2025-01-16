@@ -1,8 +1,9 @@
 {% extends "peltzerspicks/base.html" %}
 {% block content %}
-    <h1>Meet The Team</h1>
+<h1 class="meet-team-title">Meet The Team</h1>
     <div class="container">
         <div class="row">
+            <!-- Looping through each member in team database. Then after finding information printing it out. -->
             {% for member in team %}
                 <div class="col-md-4 mb-4">
                     <h3>{{ member.name }}</h3>
