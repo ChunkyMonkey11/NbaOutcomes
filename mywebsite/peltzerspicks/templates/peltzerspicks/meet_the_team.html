@@ -1,20 +1,20 @@
 {% extends "peltzerspicks/base.html" %}
 {% block content %}
-<h1 class="meet-team-title">Meet The Team</h1>
-    <div class="container">
-        <div class="row">
-            <!-- Looping through each member in team database. Then after finding information printing it out. -->
-            {% for member in team %}
-                <div class="col-md-4 mb-4">
-                    <h3>{{ member.name }}</h3>
-                    <p>{{ member.role }}</p>
-                    <p>
-                        <a href="{{ member.github }}" target="_blank">github</a> | 
-                        <a href="{{ member.linkedin }}" target="_blank">LinkedIn</a>
-                    </p>
-                </div>
-            {% endfor %}
-        </div>
+<h1 class="team-title">Meet The Team</h1>
+<div class="container">
+    <div class="row d-flex justify-content-center align-items-center">
+        {% for member in team %}
+            <div class="col-md-4 text-center d-flex flex-column align-items-center">
+                <img src="{{ member.image.url }}" alt="{{ member.name }}" class="team-member-img">
+                <h3>{{ member.name }}</h3>
+                <p>{{ member.role }}</p>
+                <p>
+                    <a href="{{ member.github }}" target="_blank">GitHub</a> | 
+                    <a href="{{ member.linkedin }}" target="_blank">LinkedIn</a>    
+                </p>
+            </div>
+        {% endfor %}
     </div>
+</div>
 {% endblock content %}
 

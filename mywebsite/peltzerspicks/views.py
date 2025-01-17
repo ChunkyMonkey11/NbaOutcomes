@@ -2,31 +2,37 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from .models import TeamMember
 
-
-team = [
-        {
-            'name': 'Adrien Peltzer',
-            'role': '   Model Developer',
-            'about me': 'Hello I am Adrien...',
-            'github': 'https://twitter.com/johndoe',
-            'linkedin': 'https://linkedin.com/in/johndoe',
-        },
-        {
-            'name': 'Revant Patel',
-            'role': 'Developer',
-            'about me': 'Hello I am Revant...',
-            'github': 'https://twitter.com/janesmith',
-            'linkedin': 'https://linkedin.com/in/janesmith',
-        },
-    ]
-
 def Home(request):
-    
+    """
+    View function for rendering the home page.
+
+    This function takes an HTTP request and returns an HTTP response 
+    that renders the 'home.html' template from the 'peltzerspicks/templates' directory.
+    """
+
     return render(request, 'peltzerspicks/home.html')
 
+
+def Predictions(request):
+    """
+    View function for rendering the predictions page.
+
+    This function takes an HTTP request and returns an HTTP response 
+    that renders the 'predictions.html' template from the 'peltzerspicks/templates' directory.
+    """
+    return render(request,'peltzerpicks/predictions.html')
+
+
 def meet_the_team(request):
+    """
+    View function for rendering the team page.
+
+    This function takes an HTTP request and returns an HTTP response 
+    that renders the 'meet_the_team.html' template from the 'peltzerspicks/templates' directory.
+    """
     # Fetch all team members from the database
     team = TeamMember.objects.all()
+
     # Pass the team data to the template
     return render(request, 'peltzerspicks/meet_the_team.html', {'team': team})
 

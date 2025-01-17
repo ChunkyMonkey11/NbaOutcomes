@@ -88,6 +88,23 @@ body {
 }
 
   
-  .meet-team-title {
+  .team-title {
     margin-bottom: 30px;
+    text-align: center;
   }
+
+  .team-member-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%; /* Makes images circular */
+    object-fit: cover; /* Ensures images maintain proportions */
+    border: 3px solid #ddd; /* Light border */
+    transition: transform 0.3s ease-in-out; /* Adds a hover effect */
+}
+
+  /* 🔹 Add a hover effect */
+  .team-member-img:hover {
+    transform: scale(1.2); /* Slightly enlarges the image on hover */
+  }
+
+  
