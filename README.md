@@ -13,6 +13,8 @@ For predict_total to work, must run the following in order each new day:
 
 
 Next steps:
+- Create a local html script that displays daily picks.
+  
 
     
 
