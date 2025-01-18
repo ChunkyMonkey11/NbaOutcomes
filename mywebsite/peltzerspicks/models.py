@@ -41,15 +41,39 @@ To recreate the working model above but to store predictions here are some instr
 2. Push make migrations then --> Push Migrations
 3. From there figure out a way to make code.py always run and how to make those predictions store in game.
     Get help from Adrien for above.
-""" 
-# class Prediction(models.Model):
-#     date = models.DateField()
-#     matchup = models.CharField(max_length=255)
-#     yahoo_total = models.FloatField()
-#     yahoo_spread = models.FloatField()
-#     predicted_total = models.FloatField()
-#     predicted_spread = models.FloatField()
-#     favored_team = models.CharField(max_length=100)
+"""
+class Prediction(models.Model):
+    date = models.DateField()
+    matchup = models.CharField(max_length=255)
+    yahoo_total = models.FloatField()
+    yahoo_spread = models.FloatField()
+    predicted_total = models.FloatField()
+    predicted_spread = models.FloatField()
+    favored_team = models.CharField(max_length=100)
 
-#     def __str__(self):
-#         return f"{self.matchup} - {self.date}"
+
+
+    """Review code below to check if I actually need this..."""
+    # def save(self, *args, **kwargs):
+    #     """Ensure proper formatting before saving to the database."""
+    #     self.matchup = self.matchup.upper()  # Convert to uppercase for consistency
+    #     self.favored_team = self.favored_team.upper()  # Ensure consistent team formatting
+    #     super().save(*args, **kwargs)
+
+    # @property
+    # def formatted_date(self):
+    #     """Return the date in a readable format (e.g., 'January 20, 2025')."""
+    #     return self.date.strftime("%B %d, %Y")
+
+    # @property
+    # def formatted_predicted_total(self):
+    #     """Return predicted total rounded to one decimal place."""
+    #     return f"{self.predicted_total:.1f}"
+
+    # def __str__(self):
+    #     """Define how the object is represented as a string."""
+    #     return f"{self.matchup} - {self.formatted_date} | Predicted: {self.formatted_predicted_total} | Favored: {self.favored_team}"
+
+
+
+
