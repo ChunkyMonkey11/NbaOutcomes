@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from datetime import date
 
 """
 To do for TeamMember Database.
@@ -42,3 +43,20 @@ To recreate the working model above but to store predictions here are some instr
 3. From there figure out a way to make code.py always run and how to make those predictions store in game.
     Get help from Adrien for above.
 """
+
+class Prediction(models.Model):
+    date = models.DateField(default=date.today)  # Auto-assign today's date
+    matchup = models.CharField(max_length=255)
+    yahoo_total = models.FloatField()
+    yahoo_spread = models.FloatField()
+    predicted_total = models.FloatField()
+    predicted_spread = models.FloatField()
+
+    def save(self, *args, **kwargs):
+        """Ensure consistent formatting before saving."""
+        self.matchup = self.matchup.upper().strip()  # Standardize matchup format
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        """Define how the object appears when printed or in Django Admin."""
+        return f"{self.matchup} - {self.date} | Predicted Total: {self.predicted_total:.1f} | Spread: {self.predicted_spread:.1f}"
