@@ -21,12 +21,6 @@ class TeamMember(models.Model):
         return self.name
 
 
-
-
-
-
-
-
 """
 IMPORTANT LOOK LATER
 The Model Class Prediction is used to create a database
