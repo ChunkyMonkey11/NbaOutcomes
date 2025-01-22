@@ -31,15 +31,13 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'peltzerspicks.apps.peltzerspicksConfig',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "peltzerspicks",
-
+    'peltzerspicks',  # This should be just the app name
 ]
 
 MIDDLEWARE = [
