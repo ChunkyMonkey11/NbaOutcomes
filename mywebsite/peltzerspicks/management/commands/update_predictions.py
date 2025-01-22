@@ -94,7 +94,6 @@ class Command(BaseCommand):
                 yahoo_spread=None,  # Adjust if needed
                 predicted_total=row["predicted_total"],
                 predicted_spread=row["predicted_spread"],
-                favored_team=None
             )
 
         self.stdout.write(self.style.SUCCESS("Predictions successfully saved to the database!"))
