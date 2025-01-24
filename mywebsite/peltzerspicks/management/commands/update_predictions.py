@@ -227,3 +227,7 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS("Predictions successfully saved to the database!"))
+
+
+
+
