@@ -124,10 +124,8 @@ class Command(BaseCommand):
 			df['predicted_total'] = df['predicted_total'].apply(lambda x: round(2*x,0)/2)
 			df['predicted_spread'] = df['predicted_spread'].apply(lambda x: round(2*x,0)/2)
 		
-			PREDICTIONS = df.loc[:,['date','matchup','total','team_spread','predicted_total','predicted_spread']].set_index('date').copy()
-			PREDICTIONS = PREDICTIONS.rename(columns = {'total':'yahoo_total','team_spread':'yahoo_spread'})
-			PREDICTIONS.columns = ['matchup','yahoo_total','yahoo_spread','predicted_total','predicted_spread']
-			PREDICTIONS.to_csv("Predictions_Home_Road_adjusted.csv",index=False)
+			PREDICTIONS = df.loc[:,['date','matchup','total','team_spread','predicted_total','predicted_spread']].copy()
+			PREDICTIONS.columns = ['date','matchup','yahoo_total','yahoo_spread','predicted_total','predicted_spread']
 			
 			return PREDICTIONS
 
