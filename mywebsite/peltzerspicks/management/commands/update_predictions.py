@@ -8,6 +8,8 @@ from django.core.management.base import BaseCommand
 from peltzerspicks.models import Prediction  # Ensure this matches your app name
 
 
+# Might be pulling the home and not away
+
 class Command(BaseCommand):
     help = "Fetch NBA predictions and store them in the database"
 
@@ -54,11 +56,19 @@ class Command(BaseCommand):
                     continue
                 
                 game_odds = j['gameodds'][game]
-                D = pd.DataFrame.from_dict(game_odds, orient='index').drop(columns='last_update')
+                #D = pd.DataFrame.from_dict(game_odds, orient='index').drop(columns='last_update')
+                D = pd.DataFrame.from_dict(game_odds, orient='index')
                 D['date'] = date
                 D['team'] = home_team
                 D['opp'] = away_team
                 D['is_home'] = True
+                df = pd.concat((df, D))
+                #E = pd.DataFrame.from_dict(game_odds, orient='index').drop(columns='last_update')
+                E = pd.DataFrame.from_dict(game_odds, orient='index')
+                E['date'] = date
+                E['team'] = away_team
+                E['opp'] = home_team
+                E['is_home'] = False
                 df = pd.concat((df, D))
             return df
 
@@ -146,7 +156,7 @@ class Command(BaseCommand):
                 date=row["date"],
                 matchup=row["matchup"],
                 yahoo_total=row["total"],
-                yahoo_spread=row.get("team_spread", None),  
+                yahoo_spread=row["team_spread"],  
                 predicted_total=row["predicted_total"],  
                 predicted_spread=row["predicted_spread"],  
             )
