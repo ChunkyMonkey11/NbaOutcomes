@@ -7,6 +7,7 @@ import json
 from django.core.management.base import BaseCommand
 from peltzerspicks.models import Prediction  # Ensure this matches your app name
 
+
 class Command(BaseCommand):
     help = "Fetch NBA predictions and store them in the database"
 
@@ -16,6 +17,7 @@ class Command(BaseCommand):
         sport = 'nba'
         today = str(datetime.today())[:10]
 
+        ### Get Odds Data from Yahoo ###
         def get_yahoo_json(sport, date):
             url = 'https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard?leagues=' + sport + '&date=' + date
             r = requests.get(url)
@@ -52,6 +54,7 @@ class Command(BaseCommand):
         if ODDS is None:
             return
 
+        ### Fix Team Abbreviations ###
         TEAMS = teams.get_teams()
         TEAM_IDS = {team['id']: team['abbreviation'] for team in TEAMS}
 
@@ -64,36 +67,54 @@ class Command(BaseCommand):
 
         df = ODDS[['date', 'team', 'opp', 'is_home', 'total']][ODDS['is_home']]
 
+        ### Get Basic Team Ratings ###
         BASIC_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced").get_data_frames()[0]
+        BASIC_RATINGS = BASIC_RATINGS.loc[:, ['TEAM_ID', 'OFF_RATING', 'DEF_RATING', 'PACE']]
         BASIC_RATINGS['team'] = BASIC_RATINGS['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
+        BASIC_RATINGS['AVG_WIN_MARGIN'] = (BASIC_RATINGS['PACE'] / 100) * (BASIC_RATINGS['OFF_RATING'] - BASIC_RATINGS['DEF_RATING'])
+        BASIC_RATINGS['AVG_TOTAL'] = (BASIC_RATINGS['PACE'] / 100) * (BASIC_RATINGS['OFF_RATING'] + BASIC_RATINGS['DEF_RATING'])
 
-        HOME_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced",
-                                             location_nullable="Home").get_data_frames()[0]
+        ### Get Home and Road Ratings ###
+        HOME_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced", location_nullable="Home").get_data_frames()[0]
+        HOME_RATINGS = HOME_RATINGS.loc[:, ['TEAM_ID', 'OFF_RATING', 'DEF_RATING', 'PACE']]
         HOME_RATINGS['team'] = HOME_RATINGS['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
+        HOME_RATINGS['AVG_WIN_MARGIN'] = (HOME_RATINGS['PACE'] / 100) * (HOME_RATINGS['OFF_RATING'] - HOME_RATINGS['DEF_RATING'])
+        HOME_RATINGS['AVG_TOTAL'] = (HOME_RATINGS['PACE'] / 100) * (HOME_RATINGS['OFF_RATING'] + HOME_RATINGS['DEF_RATING'])
 
-        ROAD_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced",
-                                             location_nullable="Road").get_data_frames()[0]
+        ROAD_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced", location_nullable="Road").get_data_frames()[0]
+        ROAD_RATINGS = ROAD_RATINGS.loc[:, ['TEAM_ID', 'OFF_RATING', 'DEF_RATING', 'PACE']]
         ROAD_RATINGS['team'] = ROAD_RATINGS['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
+        ROAD_RATINGS['AVG_WIN_MARGIN'] = (ROAD_RATINGS['PACE'] / 100) * (ROAD_RATINGS['OFF_RATING'] - ROAD_RATINGS['DEF_RATING'])
+        ROAD_RATINGS['AVG_TOTAL'] = (ROAD_RATINGS['PACE'] / 100) * (ROAD_RATINGS['OFF_RATING'] + ROAD_RATINGS['DEF_RATING'])
 
-        df = pd.merge(df, HOME_RATINGS[['team', 'OFF_RATING', 'DEF_RATING', 'PACE']], on='team')
-        df = pd.merge(df, ROAD_RATINGS[['team', 'OFF_RATING', 'DEF_RATING', 'PACE']], left_on='opp', right_on='team',
-                      suffixes=['', '_opp'])
-        df = df.drop(columns=['team_opp'])
+        ### Merge Data ###
+        df = pd.merge(df, HOME_RATINGS[['team', 'AVG_WIN_MARGIN', 'AVG_TOTAL']], on='team', suffixes=['', '_home_away_adjusted'])
+        df = pd.merge(df, ROAD_RATINGS[['team', 'AVG_WIN_MARGIN', 'AVG_TOTAL']], left_on='opp', right_on='team', suffixes=['', '_home_away_adjusted_opp'])
+        df = df.drop(columns=['team_home_away_adjusted_opp'])
 
-        df['predicted_total'] = 0.5 * (df['OFF_RATING'] + df['OFF_RATING_opp'])
-        df['predicted_spread'] = -0.5 * (df['DEF_RATING'] - df['DEF_RATING_opp'])
+        ### Make Predictions ###
+        df['predicted_total'] = .5 * (df['AVG_TOTAL_home_away_adjusted'] + df['AVG_TOTAL_home_away_adjusted_opp'])
+        df['predicted_spread'] = -.5 * (df['AVG_WIN_MARGIN_home_away_adjusted'] - df['AVG_WIN_MARGIN_home_away_adjusted_opp'])
+        
         df['predicted_total'] = df['predicted_total'].apply(lambda x: round(2 * x, 0) / 2)
         df['predicted_spread'] = df['predicted_spread'].apply(lambda x: round(2 * x, 0) / 2)
+
         df['matchup'] = df.apply(lambda row: f"{row['team']} vs. {row['opp']}", axis=1)
 
+        ### Delete Old Predictions Before Inserting New Ones ###
+        Prediction.objects.all().delete()
+
+        ### Save Predictions to Database ###
         for _, row in df.iterrows():
+            print(f"Saving: {row['matchup']}, Yahoo Total: {row['total']}, Predicted Total: {row['predicted_total']}, Yahoo Spread: {row.get('team_spread', 'N/A')}, Predicted Spread: {row['predicted_spread']}")
+
             Prediction.objects.create(
                 date=row["date"],
                 matchup=row["matchup"],
                 yahoo_total=row["total"],
-                yahoo_spread=None,  # Adjust if needed
-                predicted_total=row["predicted_total"],
-                predicted_spread=row["predicted_spread"],
+                yahoo_spread=row.get("team_spread", None),  
+                predicted_total=row["predicted_total"],  
+                predicted_spread=row["predicted_spread"],  
             )
 
         self.stdout.write(self.style.SUCCESS("Predictions successfully saved to the database!"))

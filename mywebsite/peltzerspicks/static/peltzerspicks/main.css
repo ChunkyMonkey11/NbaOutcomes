@@ -107,4 +107,9 @@ body {
     transform: scale(1.2); /* Slightly enlarges the image on hover */
   }
 
+  .predictions-page-title {
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
   
