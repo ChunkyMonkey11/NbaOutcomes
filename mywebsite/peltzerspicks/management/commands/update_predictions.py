@@ -17,30 +17,42 @@ class Command(BaseCommand):
         sport = 'nba'
         today = str(datetime.today())[:10]
 
-        ### Get Odds Data from Yahoo ###
+        ### Step 1: Fetch Odds Data from Yahoo ###
         def get_yahoo_json(sport, date):
+            """
+            Retrieves the JSON response for the given sport and date from Yahoo Sports API.
+            """
             url = 'https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard?leagues=' + sport + '&date=' + date
             r = requests.get(url)
             j = json.loads(r.text)
             return j['service']['scoreboard']
 
         def get_yahoo_lines(sport, date):
+            """
+            Extracts betting lines and team matchups from Yahoo Sports API.
+            """
             j = get_yahoo_json(sport, date)
             if 'games' not in j.keys():
                 self.stdout.write(self.style.WARNING(f"{date}: No games today"))
                 return None
+            
             df = pd.DataFrame()
             for game in j['games']:
                 game_info = j['games'][game]
                 home_team = j['teams'][game_info['home_team_id']]['abbr']
                 away_team = j['teams'][game_info['away_team_id']]['abbr']
                 status = game_info['status_description']
+                
+                # Skip postponed games
                 if status == 'Postponed':
                     self.stdout.write(self.style.WARNING(f"Postponed: {home_team} vs {away_team}"))
                     continue
+                
+                # Skip games with missing odds
                 if 'gameodds' not in j or game not in j['gameodds']:
                     self.stdout.write(self.style.WARNING(f"Missing odds for: {home_team} vs {away_team}"))
                     continue
+                
                 game_odds = j['gameodds'][game]
                 D = pd.DataFrame.from_dict(game_odds, orient='index').drop(columns='last_update')
                 D['date'] = date
@@ -54,11 +66,14 @@ class Command(BaseCommand):
         if ODDS is None:
             return
 
-        ### Fix Team Abbreviations ###
+        ### Step 2: Fix Team Abbreviations ###
         TEAMS = teams.get_teams()
         TEAM_IDS = {team['id']: team['abbreviation'] for team in TEAMS}
 
         def fix_abbreviations(team):
+            """
+            Fixes inconsistencies in team abbreviations between Yahoo and nba_api.
+            """
             TO_FIX = {'GS': "GSW", 'NY': "NYK", 'SA': "SAS", 'PHO': "PHX", 'NO': "NOP"}
             return TO_FIX.get(team, team)
 
@@ -67,44 +82,63 @@ class Command(BaseCommand):
 
         df = ODDS[['date', 'team', 'opp', 'is_home', 'total']][ODDS['is_home']]
 
-        ### Get Basic Team Ratings ###
-        BASIC_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced").get_data_frames()[0]
-        BASIC_RATINGS = BASIC_RATINGS.loc[:, ['TEAM_ID', 'OFF_RATING', 'DEF_RATING', 'PACE']]
-        BASIC_RATINGS['team'] = BASIC_RATINGS['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
-        BASIC_RATINGS['AVG_WIN_MARGIN'] = (BASIC_RATINGS['PACE'] / 100) * (BASIC_RATINGS['OFF_RATING'] - BASIC_RATINGS['DEF_RATING'])
-        BASIC_RATINGS['AVG_TOTAL'] = (BASIC_RATINGS['PACE'] / 100) * (BASIC_RATINGS['OFF_RATING'] + BASIC_RATINGS['DEF_RATING'])
+        ### Step 3: Fetch Team Ratings from NBA API ###
+        def fetch_team_ratings(location=None):
+            """
+            Fetches team ratings from the NBA API.
+            If location is 'Home' or 'Road', retrieves home/road specific ratings.
+            """
+            return e.LeagueDashTeamStats(
+                season="2024-25",
+                measure_type_detailed_defense="Advanced",
+                location_nullable=location
+            ).get_data_frames()[0]
 
-        ### Get Home and Road Ratings ###
-        HOME_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced", location_nullable="Home").get_data_frames()[0]
-        HOME_RATINGS = HOME_RATINGS.loc[:, ['TEAM_ID', 'OFF_RATING', 'DEF_RATING', 'PACE']]
-        HOME_RATINGS['team'] = HOME_RATINGS['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
-        HOME_RATINGS['AVG_WIN_MARGIN'] = (HOME_RATINGS['PACE'] / 100) * (HOME_RATINGS['OFF_RATING'] - HOME_RATINGS['DEF_RATING'])
-        HOME_RATINGS['AVG_TOTAL'] = (HOME_RATINGS['PACE'] / 100) * (HOME_RATINGS['OFF_RATING'] + HOME_RATINGS['DEF_RATING'])
+        # Fetch ratings for all, home, and road games
+        BASIC_RATINGS = fetch_team_ratings()
+        HOME_RATINGS = fetch_team_ratings("Home")
+        ROAD_RATINGS = fetch_team_ratings("Road")
 
-        ROAD_RATINGS = e.LeagueDashTeamStats(season="2024-25", measure_type_detailed_defense="Advanced", location_nullable="Road").get_data_frames()[0]
-        ROAD_RATINGS = ROAD_RATINGS.loc[:, ['TEAM_ID', 'OFF_RATING', 'DEF_RATING', 'PACE']]
-        ROAD_RATINGS['team'] = ROAD_RATINGS['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
-        ROAD_RATINGS['AVG_WIN_MARGIN'] = (ROAD_RATINGS['PACE'] / 100) * (ROAD_RATINGS['OFF_RATING'] - ROAD_RATINGS['DEF_RATING'])
-        ROAD_RATINGS['AVG_TOTAL'] = (ROAD_RATINGS['PACE'] / 100) * (ROAD_RATINGS['OFF_RATING'] + ROAD_RATINGS['DEF_RATING'])
+        # Select relevant columns
+        for df_name, df_obj in [("BASIC_RATINGS", BASIC_RATINGS), ("HOME_RATINGS", HOME_RATINGS), ("ROAD_RATINGS", ROAD_RATINGS)]:
+            df_obj['team'] = df_obj['TEAM_ID'].apply(lambda x: TEAM_IDS.get(x, 'Unknown'))
+            df_obj['AVG_WIN_MARGIN'] = (df_obj['PACE'] / 100) * (df_obj['OFF_RATING'] - df_obj['DEF_RATING'])
+            df_obj['AVG_TOTAL'] = (df_obj['PACE'] / 100) * (df_obj['OFF_RATING'] + df_obj['DEF_RATING'])
 
-        ### Merge Data ###
-        df = pd.merge(df, HOME_RATINGS[['team', 'AVG_WIN_MARGIN', 'AVG_TOTAL']], on='team', suffixes=['', '_home_away_adjusted'])
-        df = pd.merge(df, ROAD_RATINGS[['team', 'AVG_WIN_MARGIN', 'AVG_TOTAL']], left_on='opp', right_on='team', suffixes=['', '_home_away_adjusted_opp'])
-        df = df.drop(columns=['team_home_away_adjusted_opp'])
+        ### Debugging: Check column names before merging ###
+        print("Columns in df before merging:", df.columns.tolist())
 
-        ### Make Predictions ###
-        df['predicted_total'] = .5 * (df['AVG_TOTAL_home_away_adjusted'] + df['AVG_TOTAL_home_away_adjusted_opp'])
-        df['predicted_spread'] = -.5 * (df['AVG_WIN_MARGIN_home_away_adjusted'] - df['AVG_WIN_MARGIN_home_away_adjusted_opp'])
-        
+        # Merge team stats into predictions DataFrame
+        df = pd.merge(df, HOME_RATINGS[['team', 'AVG_WIN_MARGIN', 'AVG_TOTAL']], on='team', suffixes=['', '_home'])
+        df = pd.merge(df, ROAD_RATINGS[['team', 'AVG_WIN_MARGIN', 'AVG_TOTAL']], left_on='opp', right_on='team', suffixes=['', '_road'])
+
+        # Drop duplicate 'team' column from ROAD_RATINGS merge
+        df = df.drop(columns=['team_road'])
+
+        # Debugging: Check column names after merging
+        print("Columns in df after merging:", df.columns.tolist())
+
+        # Ensure required columns exist before calculations
+        expected_columns = ['AVG_TOTAL_home', 'AVG_TOTAL_road', 'AVG_WIN_MARGIN_home', 'AVG_WIN_MARGIN_road']
+        missing_columns = [col for col in expected_columns if col not in df.columns]
+
+        if missing_columns:
+            print(f"⚠️ Error: Missing columns after merging: {missing_columns}")
+            return  # Stop execution if required columns are missing
+
+        ### Step 4: Make Predictions ###
+        df['predicted_total'] = .5 * (df['AVG_TOTAL_home'] + df['AVG_TOTAL_road'])
+        df['predicted_spread'] = -.5 * (df['AVG_WIN_MARGIN_home'] - df['AVG_WIN_MARGIN_road'])
+
         df['predicted_total'] = df['predicted_total'].apply(lambda x: round(2 * x, 0) / 2)
         df['predicted_spread'] = df['predicted_spread'].apply(lambda x: round(2 * x, 0) / 2)
 
         df['matchup'] = df.apply(lambda row: f"{row['team']} vs. {row['opp']}", axis=1)
 
-        ### Delete Old Predictions Before Inserting New Ones ###
+        ### Step 5: Delete Old Predictions Before Inserting New Ones ###
         Prediction.objects.all().delete()
 
-        ### Save Predictions to Database ###
+        ### Step 6: Save Predictions to Database ###
         for _, row in df.iterrows():
             print(f"Saving: {row['matchup']}, Yahoo Total: {row['total']}, Predicted Total: {row['predicted_total']}, Yahoo Spread: {row.get('team_spread', 'N/A')}, Predicted Spread: {row['predicted_spread']}")
 
