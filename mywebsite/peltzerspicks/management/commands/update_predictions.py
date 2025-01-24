@@ -98,7 +98,7 @@ class Command(BaseCommand):
 			ODDS = ODDS[ODDS['team'].isin(TEAM_ABBREVS)]	
 			ODDS = ODDS.drop(columns = ['away_ml','away_spread'])
 			ODDS = ODDS.rename(columns = {'home_spread':"team_spread",'home_ml':"team_ml"})
-					# Only take HOME data and certain columns
+			# Only take HOME data and certain columns
 			df = ODDS.loc[:,['date','team','opp','team_ml','team_spread','total']]
 			df['matchup'] = df['team'] + ' vs. ' + df['opp']
 			
